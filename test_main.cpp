@@ -10,12 +10,18 @@
 void App::run() {
     m_seq_no = 0;
     m_detectorDelegate->set_detected_callback([this](AppFrameInfo &frameInfo) {
+        std::cout << ">>>>" << std::endl;
+        uint64_t current_ts = bm::gettime_msec();
         for (int i = 0; i < frameInfo.input_frames.size(); ++i) {
             int ch = frameInfo.input_frames[i].chan_id;
-
+            auto delta = current_ts - frameInfo.input_frames[i].ts;
+            printf("[ch=%d, seq=%lu]t1=%lu, t2=%lu, latency=%lu ms\n", ch, frameInfo.input_frames[i].seq,
+                    current_ts, frameInfo.input_frames[i].ts, delta);
             m_appStatis.m_chan_statis[ch]++;
             m_appStatis.m_total_statis++;
+
         }
+        std::cout << "<<<<" << std::endl;
     });
 
     bm::DetectorParam param;
@@ -28,23 +34,29 @@ void App::run() {
     param.inference_queue_size = m_channel_num;
     param.postprocess_thread_num = cpu_num;
     param.postprocess_queue_size = m_channel_num;
+    param.batch_num = m_max_batch;
 
     m_inferPipe.init(param, m_detectorDelegate);
 
     //read image from path
-    cv::Mat m = cv::imread("test.png");
-    m_timeQueue->create_timer(40, [this, m]{
+    cv::Mat m = cv::imread("zidane.jpg");
+    if (m.empty()) {
+        printf("read zidane.jpg failed!");
+        exit(0);
+    }
+    m_timeQueue->create_timer(60, [this, m]{
         AppSourceFrame frameInfo;
         AppFrameInfo input_frame(m_bmctx->handle());
         // fill frame
+        auto ts = bm::gettime_msec();
         for(int ch = 0; ch < CHANNEL_NUM; ++ch) {
             frameInfo.chan_id = ch;
             frameInfo.seq = m_seq_no++;
             frameInfo.frame = m;
+            frameInfo.ts = ts;
             input_frame.input_frames.push_back(frameInfo);
+            m_inferPipe.push_frame(&input_frame);
         }
-        //std::cout << "[" << bm::timeToString(time(0)) << "]" << "push frame ..." << std::endl;
-        m_inferPipe.push_frame(&input_frame);
 
     }, 1, &m_pull_timer_id);
 }
@@ -80,7 +92,7 @@ int main(int argc, char *argv[])
     AppPtr appPtr = std::make_shared<App>(appStatis, tqp, contextPtr,  0, CHANNEL_NUM, 4);
 
     // set detector delegator
-    std::shared_ptr<YoloV5> detector = std::make_shared<YoloV5>(contextPtr);
+    std::shared_ptr<YoloV5> detector = std::make_shared<YoloV5>(contextPtr, 0.5, 0.5, 0.5);
     appPtr->setDetectorDelegate(detector);
     appPtr->run();
 

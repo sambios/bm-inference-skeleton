@@ -15,7 +15,7 @@
 
 #include "opencv2/opencv.hpp"
 
-#define CHANNEL_NUM				8
+#define CHANNEL_NUM				4
 #define FRAME_ROWS				(96)
 #define OVERLAP_ROWS			(6)
 
@@ -54,11 +54,49 @@ struct AppStatis {
 };
 
 
+struct AppBox {
+    float x1, y1, width, height;
+    float score;
+    int class_id;
+    int track_id;
+    AppBox():x1(0.0), y1(0.0), width(0.0) ,height(0.0), class_id(0), track_id(0) {}
+    AppBox(float x1, float y1, float width, float height) {
+        this->x1 = x1;
+        this->y1 = y1;
+
+        this->track_id = 0;
+        this->class_id = 0;
+    }
+
+    void to_bmcv_rect(bmcv_rect_t *rect, int max_x = 0, int max_y = 0) {
+        rect->start_y = std::max(y1, 0.f);
+        rect->start_x = std::max(x1, 0.f);
+        rect->crop_w  = width;
+        rect->crop_h  = height;
+        if (max_x != 0) {
+            if (rect->start_x >= max_x)
+                rect->start_x = max_x - 1;
+            if ((rect->crop_w + rect->start_x) >= max_x)
+                rect->crop_w = max_x - rect->start_x - 1;
+        }
+        if (max_y != 0) {
+            if (rect->start_y >= max_y)
+                rect->start_y = max_y - 1;
+            if ((rect->crop_h + rect->start_y) >= max_y)
+                rect->crop_h = max_y - rect->start_y - 1;
+        }
+    }
+};
+
+using AppBoxVec=std::vector<AppBox>;
+
 struct AppSourceFrame {
     int chan_id;
     uint64_t seq;
     // user defined fields
     cv::Mat frame;
+    uint64_t ts;
+    AppBoxVec boxes;
 
     void destroy() {
         frame.release();
@@ -69,6 +107,8 @@ struct AppForward {
     std::vector<bm_tensor_t> input_tensors;
     std::vector<bm_tensor_t> output_tensors;
 };
+
+
 
 struct AppFrameInfo {
     std::vector<AppSourceFrame> input_frames;

@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(Test)
+# TARGET_ARCH values: soc, x86
+# soc means soc mode
+# x86 means pcie mode
 
 if (NOT DEFINED TARGET_ARCH)
-	set(TARGET_ARCH soc)
-endif()
+    set(TARGET_ARCH soc)
+endif ()
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -Wall")
 set(CMAKE_CXX_STANDARD 14)
 
 if (${TARGET_ARCH} STREQUAL "x86")
     message("${TARGET_ARCH} mode, starting......")
-
-elseif(${TARGET_ARCH} STREQUAL "soc")
+elseif (${TARGET_ARCH} STREQUAL "soc")
     message("${TARGET_ARCH} mode, starting......")
     set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc)
     set(CMAKE_ASM_COMPILER aarch64-linux-gnu-gcc)
@@ -25,7 +27,7 @@ set(FFMPEG_DIR ${SDK_ROOT}/opt/sophon/sophon-ffmpeg-latest/lib/cmake)
 MESSAGE(STATUS "ffmpeg_dir=${FFMPEG_DIR}")
 set(FFMPEG_INCLUDE_DIRS ${SDK_ROOT}/opt/sophon/sophon-ffmpeg-latest/include)
 set(FFMPEG_LIB_DIRS ${SDK_ROOT}/opt/sophon/sophon-ffmpeg-latest/lib)
-set(FFMPEG_LIBS avcodec avformat avutil avfilter  avdevice swscale swresample)
+set(FFMPEG_LIBS avcodec avformat avutil avfilter avdevice swscale swresample)
 
 # use opencv
 set(OpenCV_DIR ${SDK_ROOT}/opt/sophon/sophon-opencv-latest/lib/cmake/opencv4)
@@ -50,7 +52,7 @@ message(STATUS "link_dirs = ${link_dirs}")
 message(STATUS "link_libraries = ${link_libraries}")
 
 # source files
-aux_source_directory(. SRC_FILES)
+set(SRC_FILES test_main.cpp base_model.cpp yolov5.cpp)
 
 # exe
 INCLUDE_DIRECTORIES(${include_dirs})

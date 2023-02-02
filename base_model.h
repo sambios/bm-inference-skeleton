@@ -8,6 +8,8 @@
 #include "bmutility_pipeline.h"
 #include "test_main.h"
 
+#define USE_DEBUG_INFO 0
+
 class BaseModel : public bm::DetectorDelegate<AppFrameInfo>
 {
 protected:

@@ -27,24 +27,28 @@ BaseModel::~BaseModel()
 
 }
 
-int BaseModel::preprocess(std::vector<AppFrameInfo>& input_frames)
+int BaseModel::preprocess(std::vector<AppFrameInfo>& finfos)
 {
     int ret = 0;
 
     bm_handle_t handle = m_bmctx->handle();
     //total calculate frame number
     std::vector<AppSourceFrame> vecFrameBaseInfo;
-    for(int frameInfoIdx = 0; frameInfoIdx < input_frames.size(); ++frameInfoIdx) {
-        auto &frame_info = input_frames[frameInfoIdx];
+    for(int frameInfoIdx = 0; frameInfoIdx < finfos.size(); ++frameInfoIdx) {
+        auto &frame_info = finfos[frameInfoIdx];
         vecFrameBaseInfo.insert(vecFrameBaseInfo.end(), frame_info.input_frames.begin(), frame_info.input_frames.end());
     }
-
+#if USE_DEBUG_INFO
+    printf("preprocess: finfos's num=%lu BEGIN\n", finfos.size());
+#endif
     //Clear the input frames, because we'll re-arrange it later.
-    input_frames.clear();
+    finfos.clear();
     int total = vecFrameBaseInfo.size();
     int left = (total%MAX_BATCH == 0 ? MAX_BATCH: total%MAX_BATCH);
     int batch_num = total%MAX_BATCH==0 ? total/MAX_BATCH: (total/MAX_BATCH + 1);
-
+#if USE_DEBUG_INFO
+    printf("preprocess: total=%d, batch_size=%d, batch_num=%d\n", total, MAX_BATCH, batch_num);
+#endif
     for(int batch_idx = 0; batch_idx < batch_num; ++ batch_idx) {
         int num = MAX_BATCH;
         int start_idx = batch_idx*MAX_BATCH;
@@ -61,17 +65,24 @@ int BaseModel::preprocess(std::vector<AppFrameInfo>& input_frames)
         // do real preprocess
         preprocess2(new_frame_info);
 
-        input_frames.push_back(new_frame_info);
+        finfos.push_back(new_frame_info);
     }
-
+#if USE_DEBUG_INFO
+    printf("proprocess: finfo's num=%lu END\n", finfos.size());
+#endif
     return ret;
 }
 
 int BaseModel::forward(std::vector<AppFrameInfo>& frame_infos)
 {
     int ret = 0;
+#if USE_DEBUG_INFO
+    printf("forward: finfo's num=%lu\n", frame_infos.size());
+#endif
+
     for(int b = 0; b < frame_infos.size(); ++b) {
         for(int l = 0; l < frame_infos[b].forwards.size(); ++l) {
+            frame_infos[b].forwards[l].output_tensors.resize(m_bmnet->outputTensorNum());
             ret = m_bmnet->forward(frame_infos[b].forwards[l].input_tensors.data(),
                                   frame_infos[b].forwards[l].input_tensors.size(),
                                   frame_infos[b].forwards[l].output_tensors.data(),
@@ -85,6 +96,10 @@ int BaseModel::forward(std::vector<AppFrameInfo>& frame_infos)
 int BaseModel::postprocess(std::vector<AppFrameInfo> &frame_infos)
 {
     int ret = 0;
+#if USE_DEBUG_INFO
+    printf("postprocess: finfo's num=%lu\n", frame_infos.size());
+#endif
+
     for(int frameInfoIdx =0; frameInfoIdx < frame_infos.size(); ++frameInfoIdx) {
 
         // Free AVFrames
