@@ -9,6 +9,10 @@ if (NOT DEFINED TARGET_ARCH)
     set(TARGET_ARCH soc)
 endif ()
 
+if (NOT ${TARGET_ARCH} MATCHES "soc|pcie")
+	message(FATAL_ERROR "unknown target arch=${TARGET_ARCH}")
+endif()
+
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -Wall")
 set(CMAKE_CXX_STANDARD 14)
 
