@@ -15,7 +15,6 @@
 
 #include "opencv2/opencv.hpp"
 
-#define CHANNEL_NUM				4
 #define FRAME_ROWS				(96)
 #define OVERLAP_ROWS			(6)
 
@@ -148,6 +147,8 @@ class App {
     int m_channel_num;
     int m_dev_id;
     int m_max_batch;
+    int m_tpu_num;
+    int m_fps;
 
     bm::BMInferencePipe<AppFrameInfo> m_inferPipe;
     std::unordered_map<int, TChannelPtr> m_chans;
@@ -157,7 +158,7 @@ class App {
 
 public:
     App(AppStatis& statis, bm::TimerQueuePtr tq, bm::BMNNContextPtr ctx,
-                    int chan_start_index, int chan_num, int max_batch = 1):
+                    int chan_start_index, int chan_num, int tpu_num, int stream_fps=25, int max_batch = 1):
             m_detectorDelegate(nullptr), m_channel_num(chan_num), m_bmctx(ctx), m_appStatis(statis)
     {
         m_dev_id = m_bmctx->dev_id();
@@ -165,6 +166,8 @@ public:
         m_channel_start_idx = chan_start_index;
         m_max_batch = max_batch;
         m_pull_timer_id = 0;
+        m_tpu_num = tpu_num;
+        m_fps = stream_fps;
     }
 
     virtual ~App() {

@@ -100,7 +100,6 @@ void YoloV5::NMS(std::vector<AppBox> &dets, float nmsConfidence)
 }
 
 void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
-    return;
     std::vector<AppBox> yolobox_vec;
     std::vector<cv::Rect> bbox_vec;
     auto& images = frame_info.input_frames;
@@ -124,6 +123,7 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
 
         int output_num = m_bmnet->outputTensorNum();
         assert(output_num > 0);
+
         int min_dim = m_bmnet->outputTensor(0)->get_shape()->num_dims;
         int min_idx = 0;
         int box_num = 0;
@@ -141,8 +141,10 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
             }
         }
 
-        auto out_tensor = m_bmnet->outputTensor(min_idx);
-        int nout = out_tensor->get_shape()->dims[min_dim-1];
+        bm::BMNNTensor out_tensor(m_bmctx->handle(), "",
+                m_bmnet->get_output_scale(0),
+                &frame_info.forwards[batch_idx].output_tensors[min_idx]);
+        int nout = out_tensor.get_shape()->dims[min_dim-1];
         int class_num = nout - 5;
 
         float* output_data = nullptr;
@@ -201,9 +203,9 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
             }
             output_data = decoded_data.data();
         } else {
-            assert(box_num == 0 || box_num == out_tensor->get_shape()->dims[1]);
-            box_num = out_tensor->get_shape()->dims[1];
-            output_data = (float*)out_tensor->get_cpu_data() + batch_idx*box_num*nout;
+            assert(box_num == 0 || box_num == out_tensor.get_shape()->dims[1]);
+            box_num = out_tensor.get_shape()->dims[1];
+            output_data = (float*)out_tensor.get_cpu_data() + batch_idx*box_num*nout;
         }
 
         for (int i = 0; i < box_num; i++) {
