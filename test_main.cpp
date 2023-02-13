@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
             "{max_batch | 4 | max batch num}"
             "{tpu_num | 4 | tpu thread num}"
             "{chan_num | 4 | max batch num}"
-            "{fps | 25 | stream fps}"
+            "{fps | 15 | stream fps}"
             ;
 
     std::string keys;

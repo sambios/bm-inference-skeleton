@@ -6,10 +6,10 @@ project(Test)
 # x86 means pcie mode
 
 if (NOT DEFINED TARGET_ARCH)
-    set(TARGET_ARCH soc)
+    set(TARGET_ARCH x86)
 endif ()
 
-if (NOT ${TARGET_ARCH} MATCHES "soc|pcie")
+if (NOT ${TARGET_ARCH} MATCHES "soc|x86")
 	message(FATAL_ERROR "unknown target arch=${TARGET_ARCH}")
 endif()
 

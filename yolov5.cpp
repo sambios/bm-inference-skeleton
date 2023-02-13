@@ -143,7 +143,7 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
 
         bm::BMNNTensor out_tensor(m_bmctx->handle(), "",
                 m_bmnet->get_output_scale(0),
-                &frame_info.forwards[batch_idx].output_tensors[min_idx]);
+                &frame_info.forwards[0].output_tensors[min_idx]);
         int nout = out_tensor.get_shape()->dims[min_dim-1];
         int class_num = nout - 5;
 
@@ -157,10 +157,12 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
         }
 
         if(min_dim == 5){
+#if USE_DEBUG_INFO
             std::cout<<"--> Note: Decoding Boxes"<<std::endl;
             std::cout<<"          you can put the process into model during trace"<<std::endl;
             std::cout<<"          which can reduce post process time, but forward time increases 1ms"<<std::endl;
             std::cout<<std::endl;
+#endif
             const std::vector<std::vector<std::vector<int>>> anchors{
                     {{10, 13}, {16, 30}, {33, 23}},
                     {{30, 61}, {62, 45}, {59, 119}},
@@ -173,14 +175,16 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
             }
             float *dst = decoded_data.data();
             for(int tidx = 0; tidx < output_num; ++tidx) {
-                auto output_tensor = m_bmnet->outputTensor(tidx);
-                int feat_c = output_tensor->get_shape()->dims[1];
-                int feat_h = output_tensor->get_shape()->dims[2];
-                int feat_w = output_tensor->get_shape()->dims[3];
+                auto output_tensor = bm::BMNNTensor(m_bmctx->handle(), "",
+                                                m_bmnet->get_output_scale(0),
+                                                &frame_info.forwards[0].output_tensors[tidx]);
+                int feat_c = output_tensor.get_shape()->dims[1];
+                int feat_h = output_tensor.get_shape()->dims[2];
+                int feat_w = output_tensor.get_shape()->dims[3];
                 int area = feat_h * feat_w;
                 assert(feat_c == anchor_num);
                 int feature_size = feat_h*feat_w*nout;
-                float *tensor_data = (float*)output_tensor->get_cpu_data() + batch_idx*feat_c*area*nout;
+                float *tensor_data = (float*)output_tensor.get_cpu_data() + batch_idx*feat_c*area*nout;
                 for (int anchor_idx = 0; anchor_idx < anchor_num; anchor_idx++)
                 {
                     float *ptr = tensor_data + anchor_idx*feature_size;
@@ -233,8 +237,9 @@ void  YoloV5::postprocess2(AppFrameInfo &frame_info) {
                 }
             }
         }
-
+#if USE_DEBUG_INFO
         printf("\n --> valid boxes number = %d\n", (int)yolobox_vec.size());
+#endif
 
 #if USE_MULTICLASS_NMS
         std::vector<AppBoxVec> class_vec(class_num);
